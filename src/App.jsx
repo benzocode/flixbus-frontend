@@ -16,6 +16,24 @@ function App() {
   const [endDate, setEndDate] = useState('');
   const [result, setResult] = useState([]);
   const [loading, setLoading] = useState(false);
+  const nonZeroPrices = result
+  .filter(trip => trip["Price (USD)"] > 0)
+  .map(trip => trip["Price (USD)"]);
+
+  const minPriceOverall = Math.min(...nonZeroPrices);
+  const maxPriceOverall = Math.max(...nonZeroPrices);
+
+
+  useEffect(() => {
+    const today = new Date();
+    const twelveMonthsLater = new Date();
+    twelveMonthsLater.setFullYear(today.getFullYear() + 1);
+  
+    const formatDate = (date) => date.toISOString().split('T')[0];
+  
+    setStartDate(formatDate(today));
+    setEndDate(formatDate(twelveMonthsLater));
+  }, []);  
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -73,13 +91,25 @@ function App() {
         }),
       });
       const data = await response.json();
-      setResult(data.top_trips);
+  
+      console.log("Raw trip data:", data.top_trips);
+  
+      const formattedTrips = data.top_trips.map(trip => {
+        const [day, month, year] = trip.Date.split('.');
+        const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        return {
+          ...trip,
+          Date: isoDate
+        };
+      });
+  
+      setResult(formattedTrips);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   return (
     <div style={{
@@ -151,16 +181,6 @@ function App() {
           )}
         </div>
 
-        <div className="form-group">
-          <label>Start Date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
-
-        <div className="form-group">
-          <label>End Date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
-
         <button className="search-button" onClick={handleSubmit}>Search</button>
       </div>
 
@@ -172,13 +192,49 @@ function App() {
           }}
           tileContent={({ date, view }) => {
             if (view !== 'month') return null;
+          
             const dateStr = date.toISOString().split('T')[0];
-            const trip = result.find(trip => trip.Date === dateStr);
-            return trip ? (
-              <div style={{ fontSize: '0.7rem', marginTop: '4px', textAlign: 'center' }}>
-                ${trip["Price (USD)"].toFixed(0)}
+          
+            const tripsForDay = result.filter(
+              (trip) => trip.Date === dateStr && trip["Price (USD)"] > 0
+            );
+          
+            if (tripsForDay.length === 0) return null;
+          
+            const minPrice = Math.min(...tripsForDay.map(trip => trip["Price (USD)"]));
+          
+            // ✅ Compute min/max prices across all available trips (safe inside tileContent)
+            const nonZeroPrices = result
+              .filter(trip => trip["Price (USD)"] > 0)
+              .map(trip => trip["Price (USD)"]);
+          
+            const minPriceOverall = Math.min(...nonZeroPrices);
+            const maxPriceOverall = Math.max(...nonZeroPrices);
+          
+            let normalized = 0;
+            if (maxPriceOverall !== minPriceOverall) {
+              normalized = (minPrice - minPriceOverall) / (maxPriceOverall - minPriceOverall);
+            }
+          
+            let color = '';
+            if (normalized < 0.33) color = '#2ecc71';      // bright green
+            else if (normalized < 0.66) color = '#1E90FF'; // vibrant blue
+            else color = '#8B0000';                        // bold red
+          
+            return (
+              <div style={{ fontSize: '0.7rem', textAlign: 'center', marginTop: '4px' }}>
+                <div>${minPrice.toFixed(0)}</div>
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: color,
+                    margin: '4px auto 0 auto',
+                  }}
+                />
               </div>
-            ) : null;
+            );
           }}
         />
       </div>
