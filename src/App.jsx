@@ -95,7 +95,7 @@ function App() {
       <h2 style={{ marginTop: 0 }}>FlixBus Trip Search</h2>
 
       <div className="form-container">
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label>From</label>
           <input
             value={fromCity}
@@ -106,9 +106,24 @@ function App() {
             onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
             autoComplete="off"
           />
+          {showFromDropdown && fromSuggestions.length > 0 && (
+            <ul className="dropdown">
+              {fromSuggestions.map((city, idx) => (
+                <li
+                  key={idx}
+                  onClick={() => {
+                    setFromCity(city);
+                    setShowFromDropdown(false);
+                  }}
+                >
+                  {city}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label>To</label>
           <input
             value={toCity}
@@ -119,6 +134,21 @@ function App() {
             onBlur={() => setTimeout(() => setShowToDropdown(false), 200)}
             autoComplete="off"
           />
+          {showToDropdown && toSuggestions.length > 0 && (
+            <ul className="dropdown">
+              {toSuggestions.map((city, idx) => (
+                <li
+                  key={idx}
+                  onClick={() => {
+                    setToCity(city);
+                    setShowToDropdown(false);
+                  }}
+                >
+                  {city}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="form-group">
