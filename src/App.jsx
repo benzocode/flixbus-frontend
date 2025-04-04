@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import './App.css';
 
 function App() {
   const [fromCity, setFromCity] = useState('');
@@ -14,14 +17,12 @@ function App() {
   const [result, setResult] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch suggestions for 'fromCity'
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (fromCity.length < 2 || fromSuggestions.includes(fromCity)) {
         setFromSuggestions([]);
         return;
       }
-
       try {
         const response = await fetch(
           `https://global.api.flixbus.com/search/autocomplete/cities?q=${encodeURIComponent(fromCity)}&lang=en_US`
@@ -33,19 +34,16 @@ function App() {
         console.error('Error fetching fromCity suggestions:', error);
       }
     };
-
     const debounce = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounce);
   }, [fromCity]);
 
-  // Fetch suggestions for 'toCity'
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (toCity.length < 2 || toSuggestions.includes(toCity)) {
         setToSuggestions([]);
         return;
       }
-
       try {
         const response = await fetch(
           `https://global.api.flixbus.com/search/autocomplete/cities?q=${encodeURIComponent(toCity)}&lang=en_US`
@@ -57,15 +55,12 @@ function App() {
         console.error('Error fetching toCity suggestions:', error);
       }
     };
-
     const debounce = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounce);
   }, [toCity]);
 
-  // Submit search request
   const handleSubmit = async () => {
     setLoading(true);
-
     try {
       const response = await fetch('http://127.0.0.1:8000/search', {
         method: 'POST',
@@ -77,7 +72,6 @@ function App() {
           end_date: endDate,
         }),
       });
-
       const data = await response.json();
       setResult(data.top_trips);
     } catch (error) {
@@ -88,80 +82,76 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h2>FlixBus Trip Search</h2>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      width: '90vw',
+      minHeight: '100vh',
+      margin: 0,
+      padding: '1rem 2rem 2rem 2rem',
+      fontFamily: 'sans-serif',
+    }}>
+      <h2 style={{ marginTop: 0 }}>FlixBus Trip Search</h2>
 
-      {/* FROM CITY */}
-      <div style={{ position: 'relative' }}>
-        <label>From: </label>
-        <input
-          value={fromCity}
-          onChange={(e) => {
-            setFromCity(e.target.value);
-            setShowFromDropdown(true);
+      <div className="form-container">
+        <div className="form-group">
+          <label>From</label>
+          <input
+            value={fromCity}
+            onChange={(e) => {
+              setFromCity(e.target.value);
+              setShowFromDropdown(true);
+            }}
+            onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>To</label>
+          <input
+            value={toCity}
+            onChange={(e) => {
+              setToCity(e.target.value);
+              setShowToDropdown(true);
+            }}
+            onBlur={() => setTimeout(() => setShowToDropdown(false), 200)}
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Start Date</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+
+        <div className="form-group">
+          <label>End Date</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+
+        <button className="search-button" onClick={handleSubmit}>Search</button>
+      </div>
+
+      <div style={{ marginTop: '2rem', width: '100%', maxWidth: '3200px' }}>
+        <Calendar
+          onClickDay={(value) => {
+            const clickedDate = value.toISOString().split('T')[0];
+            setStartDate(clickedDate);
           }}
-          onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
-          autoComplete="off"
-        />
-        {showFromDropdown && fromSuggestions.length > 0 && (
-          <ul style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', color: '#000', border: '1px solid #ccc', maxHeight: '150px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0, zIndex: 1000 }}>
-            {fromSuggestions.map((suggestion, index) => (
-              <li
-                key={index}
-                onClick={() => {
-                  setShowFromDropdown(false);
-                  setFromCity(suggestion);
-                }}
-                style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee', backgroundColor: '#fff', color: '#000' }}
-              >
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* TO CITY */}
-      <div style={{ position: 'relative' }}>
-        <label>To: </label>
-        <input
-          value={toCity}
-          onChange={(e) => {
-            setToCity(e.target.value);
-            setShowToDropdown(true);
+          tileContent={({ date, view }) => {
+            if (view !== 'month') return null;
+            const dateStr = date.toISOString().split('T')[0];
+            const trip = result.find(trip => trip.Date === dateStr);
+            return trip ? (
+              <div style={{ fontSize: '0.7rem', marginTop: '4px', textAlign: 'center' }}>
+                ${trip["Price (USD)"].toFixed(0)}
+              </div>
+            ) : null;
           }}
-          onBlur={() => setTimeout(() => setShowToDropdown(false), 200)}
-          autoComplete="off"
         />
-        {showToDropdown && toSuggestions.length > 0 && (
-          <ul style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', color: '#000', border: '1px solid #ccc', maxHeight: '150px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0, zIndex: 1000 }}>
-            {toSuggestions.map((suggestion, index) => (
-              <li
-                key={index}
-                onClick={() => {
-                  setShowToDropdown(false);
-                  setToCity(suggestion);
-                }}
-                style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee', backgroundColor: '#fff', color: '#000' }}
-              >
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
-
-      {/* DATE INPUTS */}
-      <div>
-        <label>Start Date: </label>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-      </div>
-      <div>
-        <label>End Date: </label>
-        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-      </div>
-
-      <button onClick={handleSubmit}>Search</button>
 
       {loading && (
         <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>Searching for trips...</p>
