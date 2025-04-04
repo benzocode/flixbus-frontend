@@ -1,8 +1,8 @@
 #root {
-  max-width: 1480px;
+  max-width: none;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
+  text-align: left;
 }
 
 .logo {
@@ -44,16 +44,17 @@
 /* Overall calendar wrapper */
 .react-calendar {
   width: 100%;
-  height: auto;
-  font-size: 1.5vw; /* responsive font size */
+  max-width: none;           /* remove the fixed cap */
+  font-size: 1.25rem;        /* make calendar font larger */
   background: white;
   font-family: 'Helvetica Neue', sans-serif;
   border: none;
-  padding: 1rem;
+  padding: 1.5rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   box-sizing: border-box;
 }
+
 
 /* Top nav: Month + arrows */
 .react-calendar__navigation {
@@ -87,7 +88,7 @@
 
 .react-calendar__tile {
   text-align: center;
-  padding: 1.6rem 0;
+  padding: 2.5rem 0;
   background: #f8f8f8;
   border-radius: 8px;
   font-weight: 500;
@@ -123,5 +124,63 @@
   .react-calendar {
     font-size: 0.9rem;
   }
+}
+
+.form-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 180px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  color: #444;
+  margin-bottom: 0.25rem;
+}
+
+.form-group input {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  background-color: #fff;
+  color: #222; /* ✅ DARK TEXT COLOR */
+  transition: border 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: #61b140;
+  outline: none;
+}
+
+button.search-button {
+  background-color: #a4dc00;
+  border: none;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  color: black;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button.search-button:hover {
+  background-color: #91c900;
 }
 
