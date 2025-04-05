@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './App.css';
+import Map, { Marker, Popup } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 function App() {
   const [fromCity, setFromCity] = useState('');
@@ -16,24 +18,24 @@ function App() {
   const [endDate, setEndDate] = useState('');
   const [result, setResult] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const nonZeroPrices = result
-  .filter(trip => trip["Price (USD)"] > 0)
-  .map(trip => trip["Price (USD)"]);
+    .filter(trip => trip["Price (USD)"] > 0)
+    .map(trip => trip["Price (USD)"]);
 
   const minPriceOverall = Math.min(...nonZeroPrices);
   const maxPriceOverall = Math.max(...nonZeroPrices);
-
 
   useEffect(() => {
     const today = new Date();
     const twelveMonthsLater = new Date();
     twelveMonthsLater.setFullYear(today.getFullYear() + 1);
-  
+
     const formatDate = (date) => date.toISOString().split('T')[0];
-  
+
     setStartDate(formatDate(today));
     setEndDate(formatDate(twelveMonthsLater));
-  }, []);  
+  }, []);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -91,9 +93,7 @@ function App() {
         }),
       });
       const data = await response.json();
-  
-      console.log("Raw trip data:", data.top_trips);
-  
+
       const formattedTrips = data.top_trips.map(trip => {
         const [day, month, year] = trip.Date.split('.');
         const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -102,14 +102,35 @@ function App() {
           Date: isoDate
         };
       });
-  
+
       setResult(formattedTrips);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
-  };  
+  };
+
+  const destinations = [
+    {
+      city: 'Berlin',
+      lat: 52.52,
+      lon: 13.405,
+      price: 19.99,
+      date: '2025-05-04',
+      duration: '6h 15m',
+      url: 'https://www.flixbus.com/search?from=amsterdam&to=berlin&date=2025-05-04'
+    },
+    {
+      city: 'Prague',
+      lat: 50.0755,
+      lon: 14.4378,
+      price: 23.45,
+      date: '2025-05-08',
+      duration: '9h 45m',
+      url: 'https://www.flixbus.com/search?from=amsterdam&to=prague&date=2025-05-08'
+    }
+  ];
 
   return (
     <div style={{
@@ -192,35 +213,26 @@ function App() {
           }}
           tileContent={({ date, view }) => {
             if (view !== 'month') return null;
-          
+
             const dateStr = date.toISOString().split('T')[0];
-          
             const tripsForDay = result.filter(
               (trip) => trip.Date === dateStr && trip["Price (USD)"] > 0
             );
-          
             if (tripsForDay.length === 0) return null;
-          
+
             const minPrice = Math.min(...tripsForDay.map(trip => trip["Price (USD)"]));
-          
-            // ✅ Compute min/max prices across all available trips (safe inside tileContent)
-            const nonZeroPrices = result
-              .filter(trip => trip["Price (USD)"] > 0)
-              .map(trip => trip["Price (USD)"]);
-          
             const minPriceOverall = Math.min(...nonZeroPrices);
             const maxPriceOverall = Math.max(...nonZeroPrices);
-          
             let normalized = 0;
             if (maxPriceOverall !== minPriceOverall) {
               normalized = (minPrice - minPriceOverall) / (maxPriceOverall - minPriceOverall);
             }
-          
+
             let color = '';
-            if (normalized < 0.33) color = '#2ecc71';      // bright green
-            else if (normalized < 0.66) color = '#1E90FF'; // vibrant blue
-            else color = '#8B0000';                        // bold red
-          
+            if (normalized < 0.33) color = '#2ecc71';
+            else if (normalized < 0.66) color = '#1E90FF';
+            else color = '#8B0000';
+
             return (
               <div style={{ fontSize: '0.7rem', textAlign: 'center', marginTop: '4px' }}>
                 <div>${minPrice.toFixed(0)}</div>
@@ -239,26 +251,40 @@ function App() {
         />
       </div>
 
+      {/* 🗺️ Map Section */}
+      <div style={{ marginTop: '2rem', width: '100%' }}>
+        <Map
+          mapboxAccessToken="pk.eyJ1IjoiYmVuem90ZW56byIsImEiOiJjbTk0MXh0dGowc212MnBxenA2c2RueDM0In0.7VJ6BDq7wONaB35w9-SgWA"
+          initialViewState={{
+            longitude: 4.89,
+            latitude: 52.37,
+            zoom: 4.5
+          }}
+          style={{ width: '100%', height: '70vh' }}
+          mapStyle="mapbox://styles/mapbox/light-v11"
+        >
+          {destinations.map((dest, index) => (
+            <Marker key={index} longitude={dest.lon} latitude={dest.lat}>
+              <div
+                style={{
+                  background: '#2ecc71',
+                  borderRadius: '20px',
+                  color: 'white',
+                  padding: '3px 8px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => window.open(dest.url, '_blank')}
+              >
+                €{dest.price}
+              </div>
+            </Marker>
+          ))}
+        </Map>
+      </div>
+
       {loading && (
         <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>Searching for trips...</p>
-      )}
-
-      {result.length > 0 && (
-        <div style={{ marginTop: '2rem' }}>
-          <h3>Top 3 Cheapest Trips</h3>
-          {result.map((trip, index) => (
-            <div
-              key={index}
-              style={{ marginBottom: '1.5rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem' }}
-            >
-              <p><strong>Date:</strong> {trip.Date}</p>
-              <p><strong>Price:</strong> ${trip["Price (USD)"].toFixed(2)}</p>
-              <p><strong>Departure:</strong> {trip["Departure Time"]}</p>
-              <p><strong>Arrival:</strong> {trip["Arrival Time"]}</p>
-              <p><strong>Duration:</strong> {trip.Duration}</p>
-            </div>
-          ))}
-        </div>
       )}
     </div>
   );
